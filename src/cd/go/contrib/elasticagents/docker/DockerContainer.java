@@ -75,8 +75,9 @@ public class DockerContainer {
     public static DockerContainer create(CreateAgentRequest request, PluginSettings settings, DockerClient docker) throws InterruptedException, DockerException, IOException {
         HashMap<String, String> labels = new HashMap<>();
         labels.put(CREATED_BY_LABEL_KEY, Constants.PLUGIN_ID);
+
         ContainerCreation container = docker.createContainer(ContainerConfig.builder().
-                image("gocd/ubuntu-docker-elastic-agent").
+                image("gogoagent").
                 openStdin(true).
                 cmd("bash").
                 labels(labels).
@@ -89,28 +90,37 @@ public class DockerContainer {
 
         DockerContainer dockerContainer = new DockerContainer(id, new DateTime(docker.inspectContainer(id).created()));
 
-        dockerContainer.execCommand(id, false, docker, "mkdir", "-p", "/go-agent/config");
+        dockerContainer.execCommand(id, false, docker,
+                "bash", "-c", "((GOCD_SERVER_URL='" + settings.getGoServerUrl() + "'" +
+                        " GOCD_AGENT_AUTO_REGISTER_KEY='" + request.autoRegisterKey() + "'" +
+                        " GOCD_AGENT_AUTO_REGISTER_RESOURCES='" + StringUtils.join(request.resources(), ", ") + "'" +
+                        " GOCD_AGENT_AUTO_REGISTER_ENVIRONMENTS='" + (request.environment() == null ? "" : request.environment()) + "'" +
+                        " GOCD_AGENT_AUTO_REGISTER_ELASTIC_AGENT_ID='" + id + "'" +
+                        " GOCD_AGENT_AUTO_REGISTER_ELASTIC_PLUGIN_ID='" + Constants.PLUGIN_ID + "'" +
+                        " /goagent > agent.stdout.log 2>&1 & disown)& disown)");
 
-        File tempDirectory = new File(System.getProperty("java.io.tmpdir"), UUID.randomUUID().toString());
-        File configDir = new File(tempDirectory, "config");
-
-        tempDirectory.mkdirs();
-        configDir.mkdirs();
-        File autoregisterPropertiesFile = new File(configDir, "autoregister.properties");
-
-        try {
-            dockerContainer.saveAutoRegisterProperties(id, autoregisterPropertiesFile, request.autoRegisterKey(), request.resources(), request.environment());
-            FileUtils.copyFile(new File("/Users/ketanpadegaonkar/projects/gocd/gocd/agent/target/agent.jar"), new File(tempDirectory, "agent.jar"));
-            LOG.debug("Copying files to container " + id);
-            docker.copyToContainer(tempDirectory.toPath(), id, "/go-agent");
-            LOG.debug("Done copying files to container " + id);
-        } finally {
-            FileUtils.deleteDirectory(tempDirectory);
-        }
-
-        LOG.debug("Starting agent process on container " + id);
-        dockerContainer.execCommand(id, false, docker, "bash", "-c", "cd /go-agent && ((java -jar agent.jar '" + settings.getGoServerUrl() + "' > agent.stdout.log 2>&1 & disown)& disown)");
-        LOG.debug("Agent should now be ready in a moment...");
+//                dockerContainer.execCommand(id, false, docker, "mkdir", "-p", "/go-agent/config");
+//
+//        File tempDirectory = new File(System.getProperty("java.io.tmpdir"), UUID.randomUUID().toString());
+//        File configDir = new File(tempDirectory, "config");
+//
+//        tempDirectory.mkdirs();
+//        configDir.mkdirs();
+//        File autoregisterPropertiesFile = new File(configDir, "autoregister.properties");
+//
+//        try {
+//            dockerContainer.saveAutoRegisterProperties(id, autoregisterPropertiesFile, request.autoRegisterKey(), request.resources(), request.environment());
+//            FileUtils.copyFile(new File("/Users/ketanpadegaonkar/projects/gocd/gocd/agent/target/agent.jar"), new File(tempDirectory, "agent.jar"));
+//            LOG.debug("Copying files to container " + id);
+//            docker.copyToContainer(tempDirectory.toPath(), id, "/go-agent");
+//            LOG.debug("Done copying files to container " + id);
+//        } finally {
+//            FileUtils.deleteDirectory(tempDirectory);
+//        }
+//
+//        LOG.debug("Starting agent process on container " + id);
+//        dockerContainer.execCommand(id, false, docker, "bash", "-c", "cd /go-agent && ((java -jar agent.jar '" + settings.getGoServerUrl() + "' > agent.stdout.log 2>&1 & disown)& disown)");
+//        LOG.debug("Agent should now be ready in a moment...");
 
         return dockerContainer;
     }

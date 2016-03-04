@@ -23,6 +23,9 @@ import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 import org.joda.time.Period;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+
 public class PluginSettings {
     public static final Gson GSON = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES).excludeFieldsWithoutExposeAnnotation().create();
 
@@ -121,6 +124,14 @@ public class PluginSettings {
 
     public String getGoServerUrl() {
         return goServerUrl;
+    }
+
+    private URI getGoServerUri() {
+        try {
+            return new URI(getGoServerUrl());
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public String getDockerURI() {
