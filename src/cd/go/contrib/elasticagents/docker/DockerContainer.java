@@ -97,6 +97,7 @@ public class DockerContainer {
                         " GOCD_AGENT_AUTO_REGISTER_ENVIRONMENTS='" + (request.environment() == null ? "" : request.environment()) + "'" +
                         " GOCD_AGENT_AUTO_REGISTER_ELASTIC_AGENT_ID='" + id + "'" +
                         " GOCD_AGENT_AUTO_REGISTER_ELASTIC_PLUGIN_ID='" + Constants.PLUGIN_ID + "'" +
+                        " DEBUG=true" +
                         " /goagent > agent.stdout.log 2>&1 & disown)& disown)");
 
 //                dockerContainer.execCommand(id, false, docker, "mkdir", "-p", "/go-agent/config");
